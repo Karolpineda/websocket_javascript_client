@@ -38,7 +38,7 @@
             const message = messageInput.value;
             if (message) {
                 ws.send(message);
-                addMessageToDOM(message, "Yo")
+                addMessageToDOM(message, "Yo");
                 messageInput.value = "";
             }
         });
