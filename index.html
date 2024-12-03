@@ -22,11 +22,15 @@
         const messageInput = document.getElementById("message");
         const sendButton = document.getElementById("send");
 
+        function addMessageToDOM(content, sender){
+            const message = document.createElement("div");
+            message.textContent = `${sender}: ${content}`;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
         // Escuchar mensajes del servidor
         ws.onmessage = (event) => {
-            const message = document.createElement("div");
-            message.textContent = event.data;
-            messagesDiv.appendChild(message);
+            addMessageToDOM(event.data, "otro");
         };
 
         // Enviar mensaje al servidor
@@ -34,6 +38,7 @@
             const message = messageInput.value;
             if (message) {
                 ws.send(message);
+                addMessageToDOM(message, "Yo")
                 messageInput.value = "";
             }
         });
