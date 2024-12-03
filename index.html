@@ -31,7 +31,7 @@
 
         // Escuchar mensajes del servidor
         ws.onmessage = (event) => {
-            addMessageToDOM(event.data, "otro");
+            addMessageToDOM(event.data, "Other User");
         };
 
         // Enviar mensaje al servidor
@@ -39,7 +39,7 @@
             const message = messageInput.value;
             if (message) {
                 ws.send(message);
-                addMessageToDOM(message, "Yo");
+                addMessageToDOM(message, "My user");
                 messageInput.value = "";
             }
         });
