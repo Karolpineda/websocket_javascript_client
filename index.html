@@ -25,6 +25,7 @@
         function addMessageToDOM(content, sender){
             const message = document.createElement("div");
             message.textContent = `${sender}: ${content}`;
+            messagesDiv.appendChild(message);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
