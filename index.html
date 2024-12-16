@@ -3,112 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket Chat con Cola de Mensajes</title>
+    <title>Chat en Tiempo Real</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            display: flex;
-            justify-content: space-between;
-        }
-        #chat-container {
-            display: flex;
-            width: 70%;
-        }
-        #messages {
-            border: 1px solid #ddd;
-            padding: 10px;
-            height: 300px;
-            overflow-y: scroll;
-            margin-bottom: 10px;
-            background-color: #f9f9f9;
-            width: 70%;
-        }
-        #message {
-            width: 70%;
-        }
-        #message-input {
-            width: 80%;
-        }
-        #send {
-            margin-left: 10px;
-        }
-        #message-queue {
-            border: 1px solid #ddd;
-            padding: 10px;
-            height: 300px;
-            overflow-y: scroll;
-            background-color: #f1f1f1;
-            width: 30%;
-        }
-        .own-message {
-            color: blue;
-            font-weight: bold;
-        }
-        .other-message {
-            color: green;
-        }
+        body { font-family: Arial, sans-serif; display: flex; gap: 20px; padding: 20px; }
+        .container { border: 1px solid #ddd; padding: 10px; height: 400px; width: 300px; overflow-y: auto; }
+        h2 { text-align: center; }
+        button { margin: 5px 0; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div id="chat-container">
-        <div id="messages-container">
-            <h1>Chat con WebSockets</h1>
-            <div id="messages"></div>
-            <div>
-                <input type="text" id="message-input" placeholder="Escribe un mensaje...">
-                <button id="send">Enviar</button>
-            </div>
+    <div id="login-section">
+        <h2>Identifícate</h2>
+        <input type="text" id="username" placeholder="Ingresa tu nombre">
+        <button id="connect">Conectar</button>
+    </div>
+    <div id="chat-section" style="display: none;">
+        <div>
+            <h2>Chat</h2>
+            <div id="chat" class="container"></div>
+            <input type="text" id="message" placeholder="Escribe un mensaje...">
+            <button id="send">Enviar</button>
         </div>
-        <div id="message-queue-container">
-            <h1>Cola de Mensajes</h1>
-            <div id="message-queue"></div>
+        <div>
+            <h2>Usuarios Conectados</h2>
+            <div id="users" class="container"></div>
         </div>
     </div>
 
     <script>
-        // Cambia "PUBLIC_IP" por la dirección IP pública de tu instancia AWS
-        const ws = new WebSocket("ws://PUBLIC_IP:8765");
-        const messagesDiv = document.getElementById("messages");
-        const messageInput = document.getElementById("message-input");
+        const ws = new WebSocket("ws://localhost:8765");
+
+        const chatDiv = document.getElementById("chat");
+        const usersDiv = document.getElementById("users");
+        const messageInput = document.getElementById("message");
         const sendButton = document.getElementById("send");
-        const messageQueueDiv = document.getElementById("message-queue");
+        const loginSection = document.getElementById("login-section");
+        const chatSection = document.getElementById("chat-section");
+        const usernameInput = document.getElementById("username");
+        const connectButton = document.getElementById("connect");
 
-        function addMessageToDOM(content, sender) {
-            const message = document.createElement("div");
-            message.textContent = `${sender}: ${content}`;
-            message.className = sender === "My user" ? "own-message" : "other-message";
-            messagesDiv.appendChild(message);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        let userName = null;
+        let selectedUser = null;
+
+        // Conectar al servidor
+        connectButton.addEventListener("click", () => {
+            userName = usernameInput.value.trim();
+            if (!userName) {
+                alert("Por favor, ingresa un nombre de usuario.");
+                return;
+            }
+            ws.send(JSON.stringify({ type: "set_name", name: userName }));
+            loginSection.style.display = "none";
+            chatSection.style.display = "block";
+        });
+
+        // Actualiza la lista de usuarios conectados
+        function updateUsersList(users) {
+            usersDiv.innerHTML = "";  // Limpia la lista
+            users.forEach((user) => {
+                const userDiv = document.createElement("div");
+                userDiv.textContent = user.name;
+                userDiv.style.cursor = "pointer";
+                userDiv.onclick = () => selectUser(user.name);
+                usersDiv.appendChild(userDiv);
+            });
         }
 
-        function addMessageToQueue(message) {
-            const queueItem = document.createElement("div");
-            queueItem.textContent = `Procesando: ${message}`;
-            messageQueueDiv.appendChild(queueItem);
+        // Seleccionar destinatario
+        function selectUser(user) {
+            selectedUser = user;
+            chatDiv.innerHTML += `<div style="color: green;">Ahora estás escribiendo a: ${user}</div>`;
         }
 
-        // Escuchar mensajes del servidor
-        ws.onmessage = (event) => {
-            addMessageToDOM(event.data, "Other User");
-            addMessageToQueue(event.data); // Agregar a la cola de mensajes
-        };
-
-        // Enviar mensaje al servidor
+        // Enviar mensajes
         sendButton.addEventListener("click", () => {
-            const message = messageInput.value;
+            const message = messageInput.value.trim();
+            if (!selectedUser) {
+                alert("Selecciona un usuario al que responder.");
+                return;
+            }
             if (message) {
-                ws.send(message);
-                addMessageToDOM(message, "My user");
+                ws.send(JSON.stringify({
+                    type: "send_message",
+                    to: selectedUser,
+                    content: message
+                }));
+                chatDiv.innerHTML += `<div><strong>Tú a ${selectedUser}:</strong> ${message}</div>`;
                 messageInput.value = "";
             }
         });
 
-        // Manejar errores de conexión
-        ws.onerror = () => alert("Error de conexión con el servidor WebSocket");
-
-        // Detectar cierre de conexión
-        ws.onclose = () => alert("La conexión con el servidor WebSocket se ha cerrado.");
+        // Manejar mensajes del servidor
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === "update_users") {
+                updateUsersList(data.users);
+            } else if (data.type === "new_message") {
+                chatDiv.innerHTML += `<div><strong>${data.from}:</strong> ${data.content}</div>`;
+            }
+        };
     </script>
 </body>
 </html>
