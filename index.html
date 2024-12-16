@@ -3,11 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket Chat</title>
+    <title>WebSocket Chat con Cola de Mensajes</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        #chat-container {
+            display: flex;
+            width: 70%;
         }
         #messages {
             border: 1px solid #ddd;
@@ -16,9 +22,24 @@
             overflow-y: scroll;
             margin-bottom: 10px;
             background-color: #f9f9f9;
+            width: 70%;
         }
         #message {
+            width: 70%;
+        }
+        #message-input {
             width: 80%;
+        }
+        #send {
+            margin-left: 10px;
+        }
+        #message-queue {
+            border: 1px solid #ddd;
+            padding: 10px;
+            height: 300px;
+            overflow-y: scroll;
+            background-color: #f1f1f1;
+            width: 30%;
         }
         .own-message {
             color: blue;
@@ -30,17 +51,28 @@
     </style>
 </head>
 <body>
-    <h1>Chat con WebSockets</h1>
-    <div id="messages"></div>
-    <input type="text" id="message" placeholder="Escribe un mensaje...">
-    <button id="send">Enviar</button>
+    <div id="chat-container">
+        <div id="messages-container">
+            <h1>Chat con WebSockets</h1>
+            <div id="messages"></div>
+            <div>
+                <input type="text" id="message-input" placeholder="Escribe un mensaje...">
+                <button id="send">Enviar</button>
+            </div>
+        </div>
+        <div id="message-queue-container">
+            <h1>Cola de Mensajes</h1>
+            <div id="message-queue"></div>
+        </div>
+    </div>
 
     <script>
         // Cambia "PUBLIC_IP" por la dirección IP pública de tu instancia AWS
         const ws = new WebSocket("ws://PUBLIC_IP:8765");
         const messagesDiv = document.getElementById("messages");
-        const messageInput = document.getElementById("message");
+        const messageInput = document.getElementById("message-input");
         const sendButton = document.getElementById("send");
+        const messageQueueDiv = document.getElementById("message-queue");
 
         function addMessageToDOM(content, sender) {
             const message = document.createElement("div");
@@ -50,9 +82,16 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
+        function addMessageToQueue(message) {
+            const queueItem = document.createElement("div");
+            queueItem.textContent = `Procesando: ${message}`;
+            messageQueueDiv.appendChild(queueItem);
+        }
+
         // Escuchar mensajes del servidor
         ws.onmessage = (event) => {
             addMessageToDOM(event.data, "Other User");
+            addMessageToQueue(event.data); // Agregar a la cola de mensajes
         };
 
         // Enviar mensaje al servidor
@@ -73,4 +112,3 @@
     </script>
 </body>
 </html>
-
