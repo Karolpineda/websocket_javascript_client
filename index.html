@@ -5,9 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebSocket Chat</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        #messages { border: 1px solid #ddd; padding: 10px; height: 300px; overflow-y: scroll; margin-bottom: 10px; }
-        #message { width: 80%; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #messages {
+            border: 1px solid #ddd;
+            padding: 10px;
+            height: 300px;
+            overflow-y: scroll;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+        }
+        #message {
+            width: 80%;
+        }
+        .own-message {
+            color: blue;
+            font-weight: bold;
+        }
+        .other-message {
+            color: green;
+        }
     </style>
 </head>
 <body>
@@ -17,14 +36,16 @@
     <button id="send">Enviar</button>
 
     <script>
-        const ws = new WebSocket("ws://localhost:8765");
+        // Cambia "PUBLIC_IP" por la dirección IP pública de tu instancia AWS
+        const ws = new WebSocket("ws://PUBLIC_IP:8765");
         const messagesDiv = document.getElementById("messages");
         const messageInput = document.getElementById("message");
         const sendButton = document.getElementById("send");
 
-        function addMessageToDOM(content, sender){
+        function addMessageToDOM(content, sender) {
             const message = document.createElement("div");
             message.textContent = `${sender}: ${content}`;
+            message.className = sender === "My user" ? "own-message" : "other-message";
             messagesDiv.appendChild(message);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
@@ -44,8 +65,11 @@
             }
         });
 
-        // Mostrar errores de conexión
+        // Manejar errores de conexión
         ws.onerror = () => alert("Error de conexión con el servidor WebSocket");
+
+        // Detectar cierre de conexión
+        ws.onclose = () => alert("La conexión con el servidor WebSocket se ha cerrado.");
     </script>
 </body>
 </html>
